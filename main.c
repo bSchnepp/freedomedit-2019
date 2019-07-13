@@ -1,8 +1,12 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+
 #include <gtk/gtk.h>
+
+#include "syntax.h"
 
 typedef struct EditorPane
 {
@@ -77,7 +81,6 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 		{
 			wordStart = iter;
 			wordStartReached = TRUE;
-			printf("GOT EXECUTED!\n");
 		} else if (!wordStartReached) {
 			wordOffset++;
 		}
@@ -99,8 +102,17 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 	 */
 	gtk_text_buffer_get_iter_at_offset(textbuffer, &lineStart, lineOffset);
 	gchar *currentWord = gtk_text_buffer_get_text(textbuffer, &wordStart, &currentSpot, true);
-	GtkTextTag *tag = gtk_text_buffer_create_tag(textbuffer, "genericTAG", "foreground", "#FFFF00", "family", "Inconsolata Regular", NULL);
-	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textbuffer, "genericTAG2", "foreground", "#008844", "background", "#000000", NULL);
+	GtkTextTag *tag = gtk_text_buffer_create_tag(textbuffer, "genericTAG", 
+		"foreground", "#FFFF00", 
+		"family", "Inconsolata Regular", 
+		"size-points", 15.0, 
+	NULL);
+	
+	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textbuffer, "genericTAG2", 
+		"foreground", "#008844", 
+		"background", "#000000",
+		"family", "Inconsolata Regular", 
+	NULL);
 	gtk_text_buffer_apply_tag_by_name(textbuffer, "genericTAG", &wordStart, &currentSpot);
 	if (strcmp(currentWord, "for") == 0)
 	{
