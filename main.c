@@ -50,6 +50,23 @@ typedef struct EditorContext
 	StatusBar status;
 }EditorContext;
 
+/* Placeholder, for now. */
+void AssignRules(GtkTextBuffer *textbuffer)
+{
+	GtkTextTag *tag = gtk_text_buffer_create_tag(textbuffer, "genericTAG", 
+		"foreground", "#FFFF00", 
+		"family", "Inconsolata Regular", 
+		"size-points", 15.0, 
+	NULL);
+	
+	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textbuffer, "genericTAG2", 
+		"foreground", "#008844", 
+		"background", "#000000",
+		"family", "Inconsolata Regular", 
+	NULL);
+}
+
+
 static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edContext)
 {
 	GtkTextBuffer *textbuffer = GTK_TEXT_BUFFER(theobject);
@@ -102,17 +119,7 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 	 */
 	gtk_text_buffer_get_iter_at_offset(textbuffer, &lineStart, lineOffset);
 	gchar *currentWord = gtk_text_buffer_get_text(textbuffer, &wordStart, &currentSpot, true);
-	GtkTextTag *tag = gtk_text_buffer_create_tag(textbuffer, "genericTAG", 
-		"foreground", "#FFFF00", 
-		"family", "Inconsolata Regular", 
-		"size-points", 15.0, 
-	NULL);
 	
-	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textbuffer, "genericTAG2", 
-		"foreground", "#008844", 
-		"background", "#000000",
-		"family", "Inconsolata Regular", 
-	NULL);
 	gtk_text_buffer_apply_tag_by_name(textbuffer, "genericTAG", &wordStart, &currentSpot);
 	if (strcmp(currentWord, "for") == 0)
 	{
@@ -162,9 +169,9 @@ static void AddPane(EditorContext *context)
 	pane.FileLocation = NULL;
 	pane.FileName = "";
 	pane.scrolledContainer = gtk_scrolled_window_new(NULL, NULL);
+	AssignRules(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)));
 	g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)), "notify::cursor-position", G_CALLBACK(PositionChanged), context);
 	panes[panesCount - 1] = pane;
-	
 	
 	gtk_container_add(GTK_CONTAINER(pane.scrolledContainer), panes[panesCount - 1].textView);
 	gtk_notebook_append_page(GTK_NOTEBOOK(context->tabbedPane), pane.scrolledContainer, gtk_label_new(pane.FileName));
@@ -189,6 +196,9 @@ static void CreateMenuBar(EditorContext *context)
 	GtkWidget *fileMenuNew = gtk_menu_item_new_with_mnemonic("_New");
 	GtkWidget *fileMenuOpen = gtk_menu_item_new_with_mnemonic("_Open");
 	GtkWidget *fileMenuSave = gtk_menu_item_new_with_mnemonic("_Save");
+	GtkWidget *fileMenuAddToSourceControl = gtk_menu_item_new_with_label("Version Control");
+	GtkWidget *fileMenuProject = gtk_menu_item_new_with_label("Project");
+	GtkWidget *fileMenuExit = gtk_menu_item_new_with_label("Exit");
 	
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), fileMenuNew);
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), fileMenuOpen);
@@ -196,19 +206,14 @@ static void CreateMenuBar(EditorContext *context)
 	
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), gtk_separator_menu_item_new());
 	
-	GtkWidget *fileMenuAddToSourceControl = gtk_menu_item_new_with_label("Source Control");
-	GtkWidget *fileMenuProject = gtk_menu_item_new_with_label("Project");
-	
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), fileMenuAddToSourceControl);
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), fileMenuProject);
 	
-	gtk_menu_item_set_submenu(GTK_MENU_ITEM(context->menuBar.fileMenu), fileMenuActual);
-	
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), gtk_separator_menu_item_new());
 	
-	GtkWidget *fileMenuExit = gtk_menu_item_new_with_label("Exit");
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), fileMenuExit);
 	
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(context->menuBar.fileMenu), fileMenuActual);
 	gtk_container_add(GTK_CONTAINER(context->menuBar.menuBarActual), context->menuBar.fileMenu);
 	gtk_container_add(GTK_CONTAINER(context->menuBar.menuBarActual), context->menuBar.editMenu);
 	gtk_container_add(GTK_CONTAINER(context->menuBar.menuBarActual), context->menuBar.viewMenu);
@@ -237,9 +242,42 @@ static void CreateToolsBar(EditorContext *context)
 	gtk_container_add(GTK_CONTAINER(rightSideContainer), buildTypeSelector);
 	gtk_container_add(GTK_CONTAINER(rightSideContainer), toolbar);
 	
-	
-	
 	gtk_header_bar_pack_end(GTK_HEADER_BAR(context->titleBar), rightSideContainer);
+}
+
+void CreateStatusBar(EditorContext *context)
+{
+	/* Status bar here. Again, placeholder to get a good UI down. */
+	GtkWidget *statusbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+	GtkWidget *progBar = gtk_progress_bar_new();
+	/* Perpetually 75% done, for now. */
+	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progBar), 0.75);
+	
+	gtk_box_pack_start(GTK_BOX(statusbar), progBar, TRUE, TRUE, 0);
+	
+	/* Add a spacer. */
+	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
+	
+	GtkWidget *lineStatus = gtk_label_new("Line 1");
+	GtkWidget *colStatus = gtk_label_new("Column 1");
+	GtkWidget *charStatus = gtk_label_new("Character 1");
+	GtkWidget *inputStatus = gtk_label_new("Insert Mode");
+	
+	gtk_box_pack_start(GTK_BOX(statusbar), lineStatus, FALSE, FALSE, 12);
+	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
+	gtk_box_pack_start(GTK_BOX(statusbar), colStatus, FALSE, FALSE, 12);
+	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
+	gtk_box_pack_start(GTK_BOX(statusbar), charStatus, FALSE, FALSE, 12);
+	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
+	gtk_box_pack_start(GTK_BOX(statusbar), inputStatus, FALSE, FALSE, 12);
+	
+	context->status.progBar = progBar;
+	context->status.rowPos = lineStatus;
+	context->status.colPos = colStatus;
+	context->status.charPos = charStatus;
+	context->status.inputMode = inputStatus;
+
+	gtk_box_pack_end(GTK_BOX(context->currentPane), statusbar, FALSE, FALSE, 0);
 }
 
 static void ActivatePrimary(GtkApplication *app, gpointer edContext)
@@ -271,39 +309,11 @@ static void ActivatePrimary(GtkApplication *app, gpointer edContext)
 	gtk_header_bar_pack_start(GTK_HEADER_BAR(context->titleBar), context->menuBar.menuBarActual);
 	
 	CreateToolsBar(context);
+	CreateStatusBar(context);
 
-	/* Status bar here. Again, placeholder to get a good UI down. */
-	GtkWidget *statusbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	GtkWidget *progBar = gtk_progress_bar_new();
-	/* Perpetually 75% done, for now. */
-	gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progBar), 0.75);
-	
-	gtk_box_pack_start(GTK_BOX(statusbar), progBar, TRUE, TRUE, 0);
-	
-	/* Add a spacer. */
-	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
-	
-	GtkWidget *lineStatus = gtk_label_new("Line 1");
-	GtkWidget *colStatus = gtk_label_new("Column 1");
-	GtkWidget *charStatus = gtk_label_new("Character 1");
-	GtkWidget *inputStatus = gtk_label_new("Insert Mode");
-	
-	gtk_box_pack_start(GTK_BOX(statusbar), lineStatus, FALSE, FALSE, 12);
-	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
-	gtk_box_pack_start(GTK_BOX(statusbar), colStatus, FALSE, FALSE, 12);
-	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
-	gtk_box_pack_start(GTK_BOX(statusbar), charStatus, FALSE, FALSE, 12);
-	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
-	gtk_box_pack_start(GTK_BOX(statusbar), inputStatus, FALSE, FALSE, 12);
 
-	gtk_box_pack_end(GTK_BOX(context->currentPane), statusbar, FALSE, FALSE, 0);
 
 	gtk_container_add(GTK_CONTAINER(context->window), context->currentPane);
-	context->status.progBar = progBar;
-	context->status.rowPos = lineStatus;
-	context->status.colPos = colStatus;
-	context->status.charPos = charStatus;
-	context->status.inputMode = inputStatus;
 	gtk_widget_show_all(context->window);
 }
 
