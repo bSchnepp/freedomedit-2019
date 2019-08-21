@@ -7,48 +7,7 @@
 #include <gtk/gtk.h>
 
 #include "syntax.h"
-
-typedef struct EditorPane
-{
-	GtkWidget *scrolledContainer;
-	GtkWidget *textView;
-	const char* FileLocation;
-	const char* FileName;
-}EditorPane;
-
-typedef struct MenuBar
-{
-	GtkWidget *menuBarActual;
-
-	GtkWidget *fileMenu;
-	GtkWidget *editMenu;
-	GtkWidget *viewMenu;
-}MenuBar;
-
-typedef struct StatusBar
-{
-	GtkWidget *progBar;
-	GtkWidget *rowPos;
-	GtkWidget *colPos;
-	GtkWidget *charPos;
-	GtkWidget *inputMode;
-	bool replaceMode;
-}StatusBar;
-
-typedef struct EditorContext
-{
-	GtkWidget *window;
-	GtkWidget *titleBar;
-	GtkWidget *currentPane;
-
-	uint32_t panesCount;
-	EditorPane *panes;
-
-	/* "private" content. */
-	GtkWidget *tabbedPane;	/* GtkNotebook */
-	MenuBar menuBar;
-	StatusBar status;
-}EditorContext;
+#include "ui/ui.h"
 
 /* Placeholder, for now. */
 void AssignRules(GtkTextBuffer *textbuffer)
@@ -67,6 +26,7 @@ void AssignRules(GtkTextBuffer *textbuffer)
 }
 
 
+/* TODO: Refactor into several different source files. */
 static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edContext)
 {
 	GtkTextBuffer *textbuffer = GTK_TEXT_BUFFER(theobject);
@@ -74,6 +34,7 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 	GtkTextIter iter;
 	gtk_text_buffer_get_iter_at_mark(textbuffer, &iter, mark);
 	GdkRectangle rect;
+	
 	/* Fix off by one issues. */
 	gint xPos = gtk_text_iter_get_line(&iter) + 1;
 	gint cPos = gtk_text_iter_get_line_offset(&iter) + 1;
@@ -150,7 +111,7 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 
 static void AddPane(EditorContext *context)
 {
-	uint32_t panesCount = context->panesCount + 1;
+	uint32_t panesCount = ++(context->panesCount);
 	if (panesCount <= 1)
 	{
 		gtk_notebook_set_show_tabs(GTK_NOTEBOOK(context->tabbedPane), FALSE);
@@ -158,7 +119,7 @@ static void AddPane(EditorContext *context)
 		gtk_notebook_set_show_tabs(GTK_NOTEBOOK(context->tabbedPane), TRUE);
 	}
 	EditorPane *panes = context->panes;
-	if (panesCount != 0)
+	if (panesCount > 0)
 	{
 		panes = realloc(context->panes, sizeof(EditorPane) * panesCount);
 	} else {
@@ -172,12 +133,20 @@ static void AddPane(EditorContext *context)
 	AssignRules(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)));
 	g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)), "notify::cursor-position", G_CALLBACK(PositionChanged), context);
 	panes[panesCount - 1] = pane;
+	context->panes = panes;
+	
+	/* Add a line widget, with the same rules... but vertical. TODO. This is for line number. */
 	
 	gtk_container_add(GTK_CONTAINER(pane.scrolledContainer), panes[panesCount - 1].textView);
-	gtk_notebook_append_page(GTK_NOTEBOOK(context->tabbedPane), pane.scrolledContainer, gtk_label_new(pane.FileName));
+	gtk_notebook_append_page(GTK_NOTEBOOK(context->tabbedPane), panes[panesCount - 1].scrolledContainer, gtk_label_new(pane.FileName));
+	gtk_widget_show_all(context->tabbedPane);
+}
 
-	context->panesCount = panesCount;
-	context->panes = panes;
+
+static void AddPaneNewWrapper(GtkMenuItem *menuitem, gpointer userdata)
+{
+	EditorContext *context = (EditorContext*)userdata;
+	AddPane(context);
 }
 
 static void CreateMenuBar(EditorContext *context)
@@ -214,6 +183,10 @@ static void CreateMenuBar(EditorContext *context)
 	gtk_menu_shell_append(GTK_MENU_SHELL(fileMenuActual), fileMenuExit);
 	
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(context->menuBar.fileMenu), fileMenuActual);
+	
+	/* Attach AddPane(). */
+	g_signal_connect(fileMenuNew, "activate", G_CALLBACK(AddPaneNewWrapper), context);
+	
 	gtk_container_add(GTK_CONTAINER(context->menuBar.menuBarActual), context->menuBar.fileMenu);
 	gtk_container_add(GTK_CONTAINER(context->menuBar.menuBarActual), context->menuBar.editMenu);
 	gtk_container_add(GTK_CONTAINER(context->menuBar.menuBarActual), context->menuBar.viewMenu);
@@ -262,7 +235,10 @@ void CreateStatusBar(EditorContext *context)
 	GtkWidget *colStatus = gtk_label_new("Column 1");
 	GtkWidget *charStatus = gtk_label_new("Character 1");
 	GtkWidget *inputStatus = gtk_label_new("Insert Mode");
+	GtkWidget *langSelect = gtk_combo_box_new();
 	
+	gtk_box_pack_start(GTK_BOX(statusbar), langSelect, FALSE, FALSE, 6);
+	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
 	gtk_box_pack_start(GTK_BOX(statusbar), lineStatus, FALSE, FALSE, 12);
 	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
 	gtk_box_pack_start(GTK_BOX(statusbar), colStatus, FALSE, FALSE, 12);
