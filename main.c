@@ -128,10 +128,14 @@ static void AddPane(EditorContext *context)
 	EditorPane pane;
 	pane.textView = gtk_text_view_new();
 	pane.FileLocation = NULL;
-	pane.FileName = "";
+	pane.FileName = "Untitled Document";
 	pane.scrolledContainer = gtk_scrolled_window_new(NULL, NULL);
 	AssignRules(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)));
-	g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)), "notify::cursor-position", G_CALLBACK(PositionChanged), context);
+	
+	g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)),
+		"notify::cursor-position", G_CALLBACK(PositionChanged), 
+		context);
+		
 	panes[panesCount - 1] = pane;
 	context->panes = panes;
 	
@@ -165,7 +169,8 @@ static void CreateMenuBar(EditorContext *context)
 	GtkWidget *fileMenuNew = gtk_menu_item_new_with_mnemonic("_New");
 	GtkWidget *fileMenuOpen = gtk_menu_item_new_with_mnemonic("_Open");
 	GtkWidget *fileMenuSave = gtk_menu_item_new_with_mnemonic("_Save");
-	GtkWidget *fileMenuAddToSourceControl = gtk_menu_item_new_with_label("Version Control");
+	GtkWidget *fileMenuAddToSourceControl = 
+		gtk_menu_item_new_with_label("Version Control");
 	GtkWidget *fileMenuProject = gtk_menu_item_new_with_label("Project");
 	GtkWidget *fileMenuExit = gtk_menu_item_new_with_label("Exit");
 	
@@ -194,12 +199,6 @@ static void CreateMenuBar(EditorContext *context)
 
 static void CreateToolsBar(EditorContext *context)
 {
-	GtkWidget *toolbar = gtk_toolbar_new();
-	
-	/* TODO: Replace with a nice, green arrow. This is a placeholder, as usual. */
-	GtkToolItem *runButton = gtk_tool_button_new(gtk_image_new_from_icon_name("media-playback-start", GTK_ICON_SIZE_LARGE_TOOLBAR), NULL);
-	gtk_toolbar_insert(GTK_TOOLBAR(toolbar), runButton, -1);
-
 	GtkWidget *targetArchSelector = gtk_combo_box_text_new();
 	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(targetArchSelector), NULL, "x86_64");
 	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(targetArchSelector), NULL, "i686");
@@ -213,7 +212,6 @@ static void CreateToolsBar(EditorContext *context)
 	GtkWidget *rightSideContainer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_container_add(GTK_CONTAINER(rightSideContainer), targetArchSelector);
 	gtk_container_add(GTK_CONTAINER(rightSideContainer), buildTypeSelector);
-	gtk_container_add(GTK_CONTAINER(rightSideContainer), toolbar);
 	
 	gtk_header_bar_pack_end(GTK_HEADER_BAR(context->titleBar), rightSideContainer);
 }
@@ -268,26 +266,30 @@ static void ActivatePrimary(GtkApplication *app, gpointer edContext)
 	
 	/* Update the header bar and replace the default one. */
 	context->titleBar = gtk_header_bar_new();
-	gtk_header_bar_set_title(GTK_HEADER_BAR(context->titleBar), "FreedomEdit");
-	gtk_header_bar_set_subtitle(GTK_HEADER_BAR(context->titleBar), "Untitled Project");
-	gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(context->titleBar), TRUE);
-	gtk_window_set_titlebar(GTK_WINDOW(context->window), context->titleBar);
+	gtk_header_bar_set_title(GTK_HEADER_BAR(context->titleBar), 
+		"FreedomEdit");
+	gtk_header_bar_set_subtitle(GTK_HEADER_BAR(context->titleBar), 
+		"Untitled Project");
+	gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(context->titleBar), 
+		TRUE);
+	gtk_window_set_titlebar(GTK_WINDOW(context->window), 
+		context->titleBar);
 	
 	/* Set up the vertical box where we put widgets.*/
 	context->currentPane = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
 	/* First thing we add is a notebook. */
 	context->tabbedPane = gtk_notebook_new();
-	gtk_box_pack_start(GTK_BOX(context->currentPane), context->tabbedPane, TRUE, TRUE, 0);
+	gtk_box_pack_start(GTK_BOX(context->currentPane), context->tabbedPane, 
+		TRUE, TRUE, 0);
 	
 	CreateMenuBar(context);
 	AddPane(context);
-	gtk_header_bar_pack_start(GTK_HEADER_BAR(context->titleBar), context->menuBar.menuBarActual);
+	gtk_header_bar_pack_start(GTK_HEADER_BAR(context->titleBar), 
+		context->menuBar.menuBarActual);
 	
 	CreateToolsBar(context);
 	CreateStatusBar(context);
-
-
 
 	gtk_container_add(GTK_CONTAINER(context->window), context->currentPane);
 	gtk_widget_show_all(context->window);
@@ -296,13 +298,19 @@ static void ActivatePrimary(GtkApplication *app, gpointer edContext)
 
 int main(int argc, char** argv)
 {
-	GtkApplication *app = gtk_application_new("com.gmail.bschneppdev.freedomedit", G_APPLICATION_FLAGS_NONE);
+	GtkApplication *app = 
+		gtk_application_new("com.gmail.bschneppdev.freedomedit", 
+		G_APPLICATION_FLAGS_NONE);
+		
 	EditorContext context;
 	context.panesCount = 0;
 	context.panes = NULL;
-	g_signal_connect(app, "activate", G_CALLBACK(ActivatePrimary), &context);
+	g_signal_connect(app, "activate", G_CALLBACK(ActivatePrimary), 
+		&context);
 
 	int appStatus = g_application_run(G_APPLICATION(app), argc, argv);
+	
+	/* Runtime is over. */
 	g_object_unref(app);
 	return appStatus;
 }
