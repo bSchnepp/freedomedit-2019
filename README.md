@@ -22,13 +22,6 @@ for reading a Gist and figuring out what's going on), quickly test if something
 will cross-compile to another architecture easilly, and incorporate a whole
 new build system and all.
 
-## Why not GtkSourceView?
-I'm trying to minimize external dependencies as much as possible.
-GTK on it's own is a *massive* library. I want FreedomEdit to be as
-simple to port to another platform as possible, and GTK is already
-hard. Ensuring some module not really part of GTK works too is
-putting lots and lots of work in when I just want something that works.
-
 ## Why GTK at all?
 I need to port GTK *anyway* to bring over Chromium/Iceweasel and whatnot.
 This is going to involve a lot of porting, maybe a compatibility

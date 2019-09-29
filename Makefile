@@ -6,8 +6,9 @@ OUTPUT = freedomedit
 SOURCES = main.c syntax/syntax.c
 
 all:
-	$(CC) $(CFLAGS) `pkg-config --cflags gtk+-3.0` $(SOURCES) -o \
-		$(BUILD_PREFIX)freedomedit `pkg-config --libs gtk+-3.0` 
+	$(CC) $(CFLAGS) `pkg-config --cflags gtk+-3.0 gtksourceview-4` \
+	$(SOURCES) -o $(BUILD_PREFIX)freedomedit \
+	`pkg-config --libs gtk+-3.0 gtksourceview-4` 
 
 clean:
 	rm -rf $(BUILD_PREFIX)freedomedit

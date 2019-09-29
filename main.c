@@ -4,7 +4,9 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* Fine. Use GTKSourceView. */
 #include <gtk/gtk.h>
+#include <gtksourceview/gtksource.h>
 
 #include "syntax.h"
 #include "ui/ui.h"
@@ -68,40 +70,21 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 		{
 			break;
 		} else if (ch == '\t') {
-			yPos += 4;
+			yPos += 8;
 		} else {
 			yPos++;
 		}
 	}
 	lineOffset -= yPos - 1;
-	/* TODO  FIXME: This stuff here is TEMPORARY, to see how we do syntax highlighting without GtkSourceView.
-		We should refactor this to create rules _before_ opening, instead of
-		trying over and over and over again.
-	 */
-	gtk_text_buffer_get_iter_at_offset(textbuffer, &lineStart, lineOffset);
-	gchar *currentWord = gtk_text_buffer_get_text(textbuffer, &wordStart, &currentSpot, true);
-	
-	gtk_text_buffer_apply_tag_by_name(textbuffer, "genericTAG", &wordStart, &currentSpot);
-	if (strcmp(currentWord, "for") == 0)
-	{
-		gtk_text_buffer_apply_tag_by_name(textbuffer, "genericTAG2", &wordStart, &currentSpot);
-	}
-	
 	EditorContext *context = (EditorContext*)edContext;
-	/* 
-		Don't allow more than 64 chars. This should be more than enough for everything.
-		If you *somehow* manage to open a file with enough newlines or columns
-		to cause this to overflow, then it just causes the counter to go
-		beszerk (last few numbers sort of ignored.) This has been tested
-		by changing to buffer size 10 and copy size 9.
-	 */
+	/* Forcefully make sure line numbers terminate. */
 	char bufX[65] = {'\0'};
 	char bufY[65] = {'\0'};
 	char bufC[65] = {'\0'};
 	
-	snprintf(bufX, 64, "Line %u", xPos);
-	snprintf(bufY, 64, "Column %u", yPos);
-	snprintf(bufC, 64, "Character %u", cPos);
+	snprintf(bufX, 64, "%4sLine %u", " ", xPos);
+	snprintf(bufY, 64, "%4sColumn %u", " ", yPos);
+	snprintf(bufC, 64, "%4sCharacter %u", " ", cPos);
 	
 	gtk_label_set_text(GTK_LABEL(context->status.rowPos), bufX);
 	gtk_label_set_text(GTK_LABEL(context->status.colPos), bufY);
@@ -112,12 +95,7 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 static void AddPane(EditorContext *context)
 {
 	uint32_t panesCount = ++(context->panesCount);
-	if (panesCount <= 1)
-	{
-		gtk_notebook_set_show_tabs(GTK_NOTEBOOK(context->tabbedPane), FALSE);
-	} else {
-		gtk_notebook_set_show_tabs(GTK_NOTEBOOK(context->tabbedPane), TRUE);
-	}
+	gtk_notebook_set_show_tabs(GTK_NOTEBOOK(context->tabbedPane), TRUE);
 	EditorPane *panes = context->panes;
 	if (panesCount > 0)
 	{
@@ -126,11 +104,28 @@ static void AddPane(EditorContext *context)
 		panes = malloc(sizeof(EditorPane));
 	}
 	EditorPane pane;
-	pane.textView = gtk_text_view_new();
+	pane.textView = gtk_source_view_new();
 	pane.FileLocation = NULL;
 	pane.FileName = "Untitled Document";
 	pane.scrolledContainer = gtk_scrolled_window_new(NULL, NULL);
 	AssignRules(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)));
+	
+	gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(pane.textView), 
+		TRUE);
+		
+	/* Do it in here for now... */
+	GtkCssProvider *CssProvider = gtk_css_provider_new();
+	gtk_css_provider_load_from_data(CssProvider, 
+		"textview { font-family: \"Inconsolata Regular\", Monospace;	\
+				font-size: 12pt; }", -1, NULL);
+	gtk_style_context_add_provider(gtk_widget_get_style_context(pane.textView),
+			GTK_STYLE_PROVIDER (CssProvider),
+			GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+			g_object_unref(CssProvider);
+	
+	/* Hardcode in for now... */
+	gtk_source_view_set_insert_spaces_instead_of_tabs(GTK_SOURCE_VIEW(pane.textView), FALSE);
+	gtk_source_view_set_tab_width(GTK_SOURCE_VIEW(pane.textView), 8);
 	
 	g_signal_connect(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)),
 		"notify::cursor-position", G_CALLBACK(PositionChanged), 
@@ -138,8 +133,6 @@ static void AddPane(EditorContext *context)
 		
 	panes[panesCount - 1] = pane;
 	context->panes = panes;
-	
-	/* Add a line widget, with the same rules... but vertical. TODO. This is for line number. */
 	
 	gtk_container_add(GTK_CONTAINER(pane.scrolledContainer), panes[panesCount - 1].textView);
 	gtk_notebook_append_page(GTK_NOTEBOOK(context->tabbedPane), panes[panesCount - 1].scrolledContainer, gtk_label_new(pane.FileName));
@@ -233,9 +226,7 @@ void CreateStatusBar(EditorContext *context)
 	GtkWidget *colStatus = gtk_label_new("Column 1");
 	GtkWidget *charStatus = gtk_label_new("Character 1");
 	GtkWidget *inputStatus = gtk_label_new("Insert Mode");
-	GtkWidget *langSelect = gtk_combo_box_new();
 	
-	gtk_box_pack_start(GTK_BOX(statusbar), langSelect, FALSE, FALSE, 6);
 	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
 	gtk_box_pack_start(GTK_BOX(statusbar), lineStatus, FALSE, FALSE, 12);
 	gtk_container_add(GTK_CONTAINER(statusbar), gtk_separator_new(GTK_ORIENTATION_VERTICAL));
