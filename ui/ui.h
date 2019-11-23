@@ -4,6 +4,7 @@ typedef struct EditorPane
 {
 	GtkWidget *scrolledContainer;
 	GtkWidget *textView;
+	GtkWidget *sourceMap;
 	const char* FileLocation;
 	const char* FileName;
 }EditorPane;

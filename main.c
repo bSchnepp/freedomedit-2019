@@ -11,23 +11,6 @@
 #include "syntax.h"
 #include "ui/ui.h"
 
-/* Placeholder, for now. */
-void AssignRules(GtkTextBuffer *textbuffer)
-{
-	GtkTextTag *tag = gtk_text_buffer_create_tag(textbuffer, "genericTAG", 
-		"foreground", "#FFFF00", 
-		"family", "Inconsolata Regular", 
-		"size-points", 15.0, 
-	NULL);
-	
-	GtkTextTag *tag2 = gtk_text_buffer_create_tag(textbuffer, "genericTAG2", 
-		"foreground", "#008844", 
-		"background", "#000000",
-		"family", "Inconsolata Regular", 
-	NULL);
-}
-
-
 /* TODO: Refactor into several different source files. */
 static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edContext)
 {
@@ -82,9 +65,9 @@ static void PositionChanged(GObject *theobject, GParamSpec *spec, gpointer edCon
 	char bufY[65] = {'\0'};
 	char bufC[65] = {'\0'};
 	
-	snprintf(bufX, 64, "%4sLine %u", " ", xPos);
-	snprintf(bufY, 64, "%4sColumn %u", " ", yPos);
-	snprintf(bufC, 64, "%4sCharacter %u", " ", cPos);
+	snprintf(bufX, 64, "Line %u", xPos);
+	snprintf(bufY, 64, "Column %u", yPos);
+	snprintf(bufC, 64, "Character %u", cPos);
 	
 	gtk_label_set_text(GTK_LABEL(context->status.rowPos), bufX);
 	gtk_label_set_text(GTK_LABEL(context->status.colPos), bufY);
@@ -105,10 +88,10 @@ static void AddPane(EditorContext *context)
 	}
 	EditorPane pane;
 	pane.textView = gtk_source_view_new();
+	pane.sourceMap = gtk_source_map_new();
 	pane.FileLocation = NULL;
 	pane.FileName = "Untitled Document";
 	pane.scrolledContainer = gtk_scrolled_window_new(NULL, NULL);
-	AssignRules(gtk_text_view_get_buffer(GTK_TEXT_VIEW(pane.textView)));
 	
 	gtk_source_view_set_show_line_numbers(GTK_SOURCE_VIEW(pane.textView), 
 		TRUE);
@@ -133,9 +116,12 @@ static void AddPane(EditorContext *context)
 		
 	panes[panesCount - 1] = pane;
 	context->panes = panes;
-	
+	GtkWidget *paned = gtk_paned_new(GTK_ORIENTATION_HORIZONTAL);
+	gtk_paned_pack1(GTK_PANED(paned), pane.scrolledContainer, TRUE, FALSE);
+	gtk_paned_pack2(GTK_PANED(paned), pane.sourceMap, FALSE, TRUE);
 	gtk_container_add(GTK_CONTAINER(pane.scrolledContainer), panes[panesCount - 1].textView);
-	gtk_notebook_append_page(GTK_NOTEBOOK(context->tabbedPane), panes[panesCount - 1].scrolledContainer, gtk_label_new(pane.FileName));
+	gtk_notebook_append_page(GTK_NOTEBOOK(context->tabbedPane), paned, gtk_label_new(pane.FileName));
+	gtk_source_map_set_view(GTK_SOURCE_MAP(pane.sourceMap), GTK_SOURCE_VIEW(pane.textView));
 	gtk_widget_show_all(context->tabbedPane);
 }
 
@@ -192,18 +178,12 @@ static void CreateMenuBar(EditorContext *context)
 
 static void CreateToolsBar(EditorContext *context)
 {
-	GtkWidget *targetArchSelector = gtk_combo_box_text_new();
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(targetArchSelector), NULL, "x86_64");
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(targetArchSelector), NULL, "i686");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(targetArchSelector), 0);	
-	
 	GtkWidget *buildTypeSelector = gtk_combo_box_text_new();
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(buildTypeSelector), NULL, "Debug");
-	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(buildTypeSelector), NULL, "Release");
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(buildTypeSelector), NULL, "Profile1");
+	gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(buildTypeSelector), NULL, "Profile2");
 	gtk_combo_box_set_active(GTK_COMBO_BOX(buildTypeSelector), 0);
 	
 	GtkWidget *rightSideContainer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	gtk_container_add(GTK_CONTAINER(rightSideContainer), targetArchSelector);
 	gtk_container_add(GTK_CONTAINER(rightSideContainer), buildTypeSelector);
 	
 	gtk_header_bar_pack_end(GTK_HEADER_BAR(context->titleBar), rightSideContainer);
